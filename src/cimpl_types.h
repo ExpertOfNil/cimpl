@@ -1,5 +1,5 @@
-#ifndef CIMPL_H
-#define CIMPL_H
+#ifndef CIMPL_TYPES_H
+#define CIMPL_TYPES_H
 
 #define DEFAULT_ARRAY_CAPACITY 64
 #define DEFAULT_STRING_CAPACITY 256
@@ -41,9 +41,17 @@ typedef struct StringArray {
     u32 capacity;
 } StringArray;
 
+typedef struct StringRingBuffer {
+    char* items;
+    // Always pointing at the first valid position
+    u32 read_index;
+    u32 count;
+    u32 capacity;
+} StringRingBuffer;
+
 static u32 randi(u32 index) {
     index = (index << 13) ^ index;
     return (index * (index * index * 15731 + 789221) + 1276312589) & 0x7fffffff;
 }
 
-#endif /* CIMPL_H */
+#endif /* CIMPL_TYPES_H */

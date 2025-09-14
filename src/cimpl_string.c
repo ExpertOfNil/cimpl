@@ -7,9 +7,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "cimpl.h"
+#include "cimpl_types.h"
 
-String* String_default() {
+/* String */
+
+// Provides a pointer to a new string with default capacity
+// NOTE: This function allocates.  It is the responsibility of the user to free.
+String* String_default(void) {
     char* items = calloc(DEFAULT_STRING_CAPACITY, 1);
     if (items == NULL) {
         fprintf(stderr, "Out of memory");
@@ -27,6 +31,7 @@ String* String_default() {
     return str;
 }
 
+// Ensures capacity is at least the requested capacity
 CimplReturn String_reserve(String* str, u32 capacity) {
     if (capacity > str->capacity) {
         if (str->capacity == 0) {
@@ -44,7 +49,8 @@ CimplReturn String_reserve(String* str, u32 capacity) {
     return RETURN_OK;
 }
 
-CimplReturn String_append(String* str, char c) {
+// Pushes a char onto the end of a string
+CimplReturn String_push_char(String* str, char c) {
     if (String_reserve(str, str->count + 1) != RETURN_OK) {
         return RETURN_ERR;
     }
@@ -53,7 +59,8 @@ CimplReturn String_append(String* str, char c) {
     return RETURN_OK;
 }
 
-CimplReturn String_concat(String* dst, StringView* src) {
+// Concatenates a string view to the end of a string
+CimplReturn String_push_view(String* dst, StringView* src) {
     u32 count = src->offset + 1;
     if (String_reserve(dst, dst->count + count) != RETURN_OK) {
         return RETURN_ERR;
@@ -63,7 +70,8 @@ CimplReturn String_concat(String* dst, StringView* src) {
     return RETURN_OK;
 }
 
-CimplReturn String_append_literal(String* str, const char* items) {
+// Pushes a string literal to the end of a string
+CimplReturn String_push_literal(String* str, const char* items) {
     if (items == NULL) return RETURN_OK;
     u32 count = strlen(items);
     if (String_reserve(str, str->count + count) != RETURN_OK) {
@@ -74,11 +82,13 @@ CimplReturn String_append_literal(String* str, const char* items) {
     return RETURN_OK;
 }
 
+// Zeros out items, but retains allocated memory
 void String_clear(String* str) {
     memset(str->items, 0, str->count);
     str->count = 0;
 }
 
+// Releases allocated memory
 void String_free(String* str) {
     free(str->items);
     str->items = NULL;
@@ -86,7 +96,11 @@ void String_free(String* str) {
     str->capacity = 0;
 }
 
-StringArray* StringArray_default() {
+/* StringArray */
+
+// Provides a pointer to a new string array with default capacity
+// NOTE: This function allocates.  It is the responsibility of the user to free.
+StringArray* StringArray_default(void) {
     String* items = calloc(DEFAULT_ARRAY_CAPACITY, sizeof(String));
     if (items == NULL) {
         fprintf(stderr, "Out of memory");
@@ -104,6 +118,7 @@ StringArray* StringArray_default() {
     return arr;
 }
 
+// Ensures capacity is at least the requested capacity
 CimplReturn StringArray_reserve(StringArray* arr, u32 capacity) {
     if (capacity > arr->capacity) {
         if (arr->capacity == 0) {
@@ -121,6 +136,7 @@ CimplReturn StringArray_reserve(StringArray* arr, u32 capacity) {
     return RETURN_OK;
 }
 
+// Copies the provided string to a new string item
 CimplReturn StringArray_push(StringArray* arr, String str) {
     if (StringArray_reserve(arr, arr->count + 1) != RETURN_OK) {
         return RETURN_ERR;
@@ -130,6 +146,7 @@ CimplReturn StringArray_push(StringArray* arr, String str) {
     return RETURN_OK;
 }
 
+// Zeros out all strings, but retains allocated memory
 void StringArray_clear(StringArray* arr) {
     for (u32 i = 0; i < arr->count; ++i) {
         String_clear(&arr->items[i]);
@@ -137,6 +154,8 @@ void StringArray_clear(StringArray* arr) {
     arr->count = 0;
 }
 
+// Releases allocated memory for all strings
+// NOTE: Do not free the string individually after calling this
 void StringArray_free(StringArray* arr) {
     for (u32 i = 0; i < arr->count; ++i) {
         String_free(&arr->items[i]);
@@ -145,6 +164,58 @@ void StringArray_free(StringArray* arr) {
     arr->items = NULL;
     arr->count = 0;
     arr->capacity = 0;
+}
+
+/* StringRingBuffer */
+
+// Ensures capacity is at least the requested size
+CimplReturn StringRingBuffer_reserve(StringRingBuffer* buf, u32 capacity) {
+    if (capacity > buf->capacity) {
+        if (buf->capacity == 0) {
+            buf->capacity = DEFAULT_STRING_CAPACITY;
+        }
+        while (capacity > buf->capacity) {
+            buf->capacity *= 2;
+        }
+        buf->items = realloc(buf->items, buf->capacity);
+        if (buf->items == NULL) {
+            fprintf(stderr, "Out of memory");
+            return RETURN_ERR;
+        }
+    }
+    return RETURN_OK;
+}
+
+// Copies string view contents to the buffer
+CimplReturn StringRingBuffer_push(StringRingBuffer* dst, StringView* src) {
+    u32 new_char_count = src->offset + 1;
+    u32 vacant = dst->capacity - dst->count;
+    if (new_char_count > vacant) {
+        CimplReturn err =
+            StringRingBuffer_reserve(dst, dst->capacity + new_char_count);
+        if (err != RETURN_OK) return RETURN_ERR;
+    }
+    // Find index after last valid character
+    u32 write_index = dst->read_index + dst->count % dst->capacity;
+    memcpy(&dst->items[write_index], src->begin, new_char_count);
+    dst->count += new_char_count;
+    return RETURN_OK;
+}
+
+// Zeros the memory but retains allocated space
+void StringRingBuffer_clear(StringRingBuffer* buf) {
+    memset(buf->items, 0, buf->capacity);
+    buf->count = 0;
+    buf->read_index = 0;
+}
+
+// Release allocated memory
+void StringRingBuffer_free(StringRingBuffer* buf) {
+    free(buf->items);
+    buf->items = NULL;
+    buf->read_index = 0;
+    buf->count = 0;
+    buf->capacity = 0;
 }
 
 #endif /* CIMPL_STRING_H */
