@@ -1,6 +1,9 @@
-#include "cimpl_impl.h"
+#include <errno.h>
 
-void print_msg(String msg) { printf("Message: %s", msg.items); }
+#include "cimpl_serial.h"
+#include "cimpl_string.h"
+
+void print_msg(String msg) { printf("Message: %s\n", msg.items); }
 
 CimplReturn parse_message(StringRingBuffer* buf, void (*msg_handler)(String)) {
     // Nothing to do
@@ -29,33 +32,37 @@ CimplReturn parse_message(StringRingBuffer* buf, void (*msg_handler)(String)) {
 }
 
 i32 main(int argc, char** argv) {
-    const char* fname;
+    const char* device;
     if (argc > 1) {
-        fname = argv[1];
+        device = argv[1];
     } else {
-        fname = "test_messages.txt";
+        device = SERIAL_DEVICE;
     }
 
-    i32 fd = open(fname, O_RDONLY);
+    i32 serial_fd = serial_start(device);
+    if (serial_fd < 0) return RETURN_ERR;
+
     char temp_buf[64];
     StringRingBuffer read_buf = {0};
     StringRingBuffer_reserve(&read_buf, DEFAULT_STRING_CAPACITY);
-
-    i64 read_bytes = read(fd, temp_buf, sizeof(temp_buf));
-    if (read_bytes < 0) {
-        fprintf(stderr, "Failed to read from file %s", fname);
-        return RETURN_ERR;
+    while (1) {
+        i64 read_bytes = read(serial_fd, temp_buf, sizeof(temp_buf));
+        if (read_bytes < 0) {
+            // Resource temporarily available, not critical error
+            if (errno != EAGAIN && errno != EWOULDBLOCK) {
+                fprintf(stderr, "Failed to read from %s", device);
+                return RETURN_ERR;
+            }
+        }
+        if (read_bytes == 0) continue;
+        // TODO (mmckenna): do something with the message
+        StringView sv = {
+            .begin = temp_buf,
+            .count = read_bytes,
+        };
+        StringRingBuffer_push(&read_buf, &sv);
+        parse_message(&read_buf, print_msg);
     }
-    if (read_bytes == 0) {
-        printf("Nothing to read");
-        return RETURN_OK;
-    }
-    StringView sv = {
-        .begin = temp_buf,
-        .offset = read_bytes - 1,
-    };
-    StringRingBuffer_push(&read_buf, &sv);
-    parse_message(&read_buf, print_msg);
 
     StringRingBuffer_free(&read_buf);
     return RETURN_OK;

@@ -1,21 +1,4 @@
-#ifndef CIMPL_SERIAL_H
-#define CIMPL_SERIAL_H
-
-#include <errno.h>
-#include <fcntl.h>
-#include <stdio.h>
-#include <termios.h>
-#include <unistd.h>
-
-#include "cimpl_types.h"
-
-#ifndef SERIAL_DEVICE
-#define SERIAL_DEVICE "/dev/tty/ACM0"
-#endif
-
-#ifndef SERIAL_BAUD
-#define SERIAL_BAUD 115200
-#endif
+#include "cimpl_serial.h"
 
 CimplReturn serial_configure(i32 fd, u32 baud) {
     struct termios tty;
@@ -71,5 +54,3 @@ i32 serial_start(const char* device) {
     tcflush(serial_fd, TCIOFLUSH);
     return serial_fd;
 }
-
-#endif /* CIMPL_SERIAL */

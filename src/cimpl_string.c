@@ -1,13 +1,11 @@
-#ifndef CIMPL_STRING_H
-#define CIMPL_STRING_H
-
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "cimpl_types.h"
+#include "cimpl_core.h"
+#include "cimpl_string.h"
 
 /* String */
 
@@ -61,12 +59,11 @@ CimplReturn String_push_char(String* str, char c) {
 
 // Concatenates a string view to the end of a string
 CimplReturn String_push_view(String* dst, StringView* src) {
-    u32 count = src->offset + 1;
-    if (String_reserve(dst, dst->count + count) != RETURN_OK) {
+    if (String_reserve(dst, dst->count + src->count) != RETURN_OK) {
         return RETURN_ERR;
     }
-    memcpy(&dst->items[dst->count], src->begin, count);
-    dst->count += count;
+    memcpy(&dst->items[dst->count], src->begin, src->count);
+    dst->count += src->count;
     return RETURN_OK;
 }
 
@@ -94,6 +91,40 @@ void String_free(String* str) {
     str->items = NULL;
     str->count = 0;
     str->capacity = 0;
+}
+
+/* StringView */
+
+u16 StringView_to_u16(StringView* str) {
+    u32 result = 0;
+    for (u32 i = 0; i < str->count; ++i) {
+        char c = str->begin[i];
+        if (c < '0' || c > '9') {
+            fprintf(
+                stderr,
+                "Found invalid char %c in IP address %*.s\n",
+                c,
+                str->count,
+                str->begin
+            );
+            return -1;
+        }
+        result = result * 10 + (str->begin[i] - '0');
+        if (result > 65535) {
+            fprintf(stderr, "Overflow Error: result = %d", result);
+            return -1;
+        }
+    }
+    return (u16)result;
+}
+
+u8 StringView_to_u8(StringView* str) {
+    u16 result = StringView_to_u16(str);
+    if (result > 255) {
+        fprintf(stderr, "Overflow Error: result = %d", result);
+        return -1;
+    }
+    return (u8)result;
 }
 
 /* StringArray */
@@ -188,17 +219,16 @@ CimplReturn StringRingBuffer_reserve(StringRingBuffer* buf, u32 capacity) {
 
 // Copies string view contents to the buffer
 CimplReturn StringRingBuffer_push(StringRingBuffer* dst, StringView* src) {
-    u32 new_char_count = src->offset + 1;
     u32 vacant = dst->capacity - dst->count;
-    if (new_char_count > vacant) {
+    if (src->count > vacant) {
         CimplReturn err =
-            StringRingBuffer_reserve(dst, dst->capacity + new_char_count);
+            StringRingBuffer_reserve(dst, dst->capacity + src->count);
         if (err != RETURN_OK) return RETURN_ERR;
     }
     // Find index after last valid character
     u32 write_index = dst->read_index + dst->count % dst->capacity;
-    memcpy(&dst->items[write_index], src->begin, new_char_count);
-    dst->count += new_char_count;
+    memcpy(&dst->items[write_index], src->begin, src->count);
+    dst->count += src->count;
     return RETURN_OK;
 }
 
@@ -217,5 +247,3 @@ void StringRingBuffer_free(StringRingBuffer* buf) {
     buf->count = 0;
     buf->capacity = 0;
 }
-
-#endif /* CIMPL_STRING_H */
