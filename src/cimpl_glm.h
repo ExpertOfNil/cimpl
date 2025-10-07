@@ -10,6 +10,35 @@ typedef struct Vec3 {
     f32 x, y, z;
 } Vec3;
 
+typedef struct Vec3Array {
+    Vec3* items;
+    u32 count;
+    u32 capacity;
+} Vec3Array;
+
+CimplReturn Vec3Array_reserve(Vec3Array*, u32);
+CimplReturn Vec3Array_push(Vec3Array*, Vec3);
+void Vec3Array_clear(Vec3Array*);
+void Vec3Array_free(Vec3Array*);
+
+typedef struct StlTriangle {
+    Vec3 normal;
+    Vec3 vertices[3];
+    u16 attributes;
+} StlTriangle;
+
+typedef struct StlTriangleArray {
+    StlTriangle* items;
+    u32 count;
+    u32 capacity;
+} StlTriangleArray;
+
+CimplReturn StlTriangleArray_reserve(StlTriangleArray*, u32);
+CimplReturn StlTriangleArray_push(StlTriangleArray*, StlTriangle);
+void StlTriangleArray_clear(StlTriangleArray*);
+void StlTriangleArray_free(StlTriangleArray*);
+CimplReturn StlTriangleArray_from_binary(const char*, StlTriangleArray*);
+
 typedef struct Vec4 {
     f32 x, y, z, w;
 } Vec4;
