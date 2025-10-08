@@ -6,6 +6,12 @@
 #define POSE_PRINT_FORMAT \
     "[%010d] %9.3f, %9.3f, %9.3f,%9.3f, %9.3f, %9.3f, %9.3f\n"
 
+typedef enum {
+    AXIS_X = 0,
+    AXIS_Y = 1,
+    AXIS_Z = 2,
+} Axis;
+
 typedef struct Vec3 {
     f32 x, y, z;
 } Vec3;
@@ -20,6 +26,29 @@ CimplReturn Vec3Array_reserve(Vec3Array*, u32);
 CimplReturn Vec3Array_push(Vec3Array*, Vec3);
 void Vec3Array_clear(Vec3Array*);
 void Vec3Array_free(Vec3Array*);
+
+typedef struct Vec3Node Vec3Node;
+struct Vec3Node {
+    u32 index;
+    Vec3* item;
+    Vec3Node* left;
+    Vec3Node* right;
+};
+
+typedef struct Vec3Tree {
+    Vec3Node* items;
+    u32 count;
+    u32 capacity;
+} Vec3Tree;
+
+void Vec3Tree_print(Vec3Tree*);
+CimplReturn Vec3Tree_reserve(Vec3Tree*, u32);
+CimplReturn Vec3Tree_push(Vec3Tree*, Vec3Node);
+void Vec3Tree_clear(Vec3Tree*);
+void Vec3Tree_free(Vec3Tree*);
+i32 Vec3Tree_partition(Vec3Tree*, Axis, i32, i32);
+void Vec3Tree_quicksort(Vec3Tree*, Axis, i32, i32);
+CimplReturn Vec3Tree_sort(Vec3Tree*, Axis, const Vec3Array*);
 
 typedef struct StlTriangle {
     Vec3 normal;
