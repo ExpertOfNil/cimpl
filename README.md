@@ -10,7 +10,7 @@ cmake -B build
 cmake --build build
 ```
 
-# Notes
+## Notes
 
 - Currently, this library is only compatible with Linux
 - Windows compatibility is on the roadmap
