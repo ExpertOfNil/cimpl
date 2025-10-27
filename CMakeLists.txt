@@ -6,9 +6,7 @@ set(
     CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin/
 )
 set(CIMPL_SOURCES
-    src/cimpl_network.c
-    src/cimpl_serial.c
-    src/cimpl_string.c
+    src/cimpl.c
 )
 
 add_library(cimpl SHARED ${CIMPL_SOURCES})
@@ -24,13 +22,16 @@ set_target_properties(cimpl cimpl_static PROPERTIES
     ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib
 )
 
-target_include_directories(cimpl PUBLIC src/)
-target_include_directories(cimpl_static PUBLIC src/)
+target_include_directories(cimpl PUBLIC ${PROJECT_SOURCE_DIR}/include/)
+target_include_directories(cimpl_static PUBLIC ${PROJECT_SOURCE_DIR}/include/)
 
 file(GLOB EXAMPLE_SOURCES "examples/*.c")
 foreach(EXAMPLE_SOURCE ${EXAMPLE_SOURCES})
     get_filename_component(EXAMPLE_NAME ${EXAMPLE_SOURCE} NAME_WE)
     add_executable(${EXAMPLE_NAME} ${EXAMPLE_SOURCE})
-    target_link_libraries(${EXAMPLE_NAME} cimpl)
-    target_include_directories(${EXAMPLE_NAME} PRIVATE src/)
+    # Uncomment to link compiled shared library
+    #target_link_libraries(${EXAMPLE_NAME} cimpl)
+    # Uncomment to link compiled static library
+    #target_link_libraries(${EXAMPLE_NAME} cimpl_static)
+    target_include_directories(${EXAMPLE_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/include/)
 endforeach()

@@ -1,12 +1,26 @@
+#ifndef CIMPL_NETWORK_H
+#define CIMPL_NETWORK_H
+
 #include <arpa/inet.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 
-#include "cimpl_network.h"
+#include "cimpl_core.h"
 #include "cimpl_string.h"
 
+typedef struct IpV4Addr {
+    u32 addr;
+    u16 port;
+} IpV4Addr;
+
+void IpV4Addr_print(IpV4Addr*);
+i32 IpV4Addr_from_str(IpV4Addr*, char*);
+i32 parse_ip_str(IpV4Addr*, const char*);
+i32 udp_listener_setup(isize*, IpV4Addr);
+
+#ifdef CIMPL_IMPLEMENTATION
 void IpV4Addr_print(IpV4Addr* ip) {
     u8 parts[4] = {0};
     parts[0] = (u8)(ip->addr >> 24);
@@ -150,18 +164,12 @@ i32 udp_listener_setup(isize* socket_fd, IpV4Addr ip) {
     }
     int reuse = 1;
     if (setsockopt(
-            *socket_fd,
-            SOL_SOCKET,
-            SO_REUSEADDR,
-            &reuse,
-            sizeof(reuse)
+            *socket_fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)
         ) < 0) {
         log_error("Failed to set SO_REUSEADDR");
     }
     int bind_err = bind(
-        *socket_fd,
-        (const struct sockaddr*)&listen_addr,
-        sizeof(listen_addr)
+        *socket_fd, (const struct sockaddr*)&listen_addr, sizeof(listen_addr)
     );
     if (bind_err < 0) {
         log_error(
@@ -172,3 +180,6 @@ i32 udp_listener_setup(isize* socket_fd, IpV4Addr ip) {
     log_info("Listening at %s:%d\n", ip_addr_str, ip.port);
     return EXIT_SUCCESS;
 }
+#endif /* CIMPL_IMPLEMENTATION */
+
+#endif /* CIMPL_NETWORK_H */

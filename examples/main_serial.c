@@ -1,5 +1,6 @@
 #include <errno.h>
 
+#define CIMPL_IMPLEMENTATION
 #include "cimpl_serial.h"
 #include "cimpl_string.h"
 
@@ -13,7 +14,7 @@ CimplReturn parse_message(StringRingBuffer* buf, void (*msg_handler)(String)) {
     u32 read_index = buf->read_index;
     for (u32 count = buf->count; count > 0; count--) {
         char c = buf->items[read_index++];
-        String_push_char(&temp_msg_buf, c);
+        String_push(&temp_msg_buf, c);
         if (c == '\n') {
             // We have a complete message
             // Update read index to start at the next message
@@ -57,7 +58,7 @@ i32 main(int argc, char** argv) {
         if (read_bytes == 0) continue;
         // TODO (mmckenna): do something with the message
         StringView sv = {
-            .begin = temp_buf,
+            .items = temp_buf,
             .count = read_bytes,
         };
         StringRingBuffer_push(&read_buf, &sv);
