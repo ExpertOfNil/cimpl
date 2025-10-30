@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stddef.h>
 #include <time.h>
 
 #ifndef LOG_LEVEL
@@ -33,7 +34,7 @@
 #endif
 
 typedef size_t usize;
-typedef ssize_t isize;
+typedef ptrdiff_t isize;
 
 typedef uint8_t u8;
 typedef uint16_t u16;
