@@ -29,9 +29,12 @@ file(GLOB EXAMPLE_SOURCES "examples/*.c")
 foreach(EXAMPLE_SOURCE ${EXAMPLE_SOURCES})
     get_filename_component(EXAMPLE_NAME ${EXAMPLE_SOURCE} NAME_WE)
     add_executable(${EXAMPLE_NAME} ${EXAMPLE_SOURCE})
-    # Uncomment to link compiled shared library
-    #target_link_libraries(${EXAMPLE_NAME} cimpl)
-    # Uncomment to link compiled static library
-    #target_link_libraries(${EXAMPLE_NAME} cimpl_static)
+    target_link_libraries(${EXAMPLE_NAME}
+        # Uncomment to link compiled shared library
+        #cimpl
+        # Uncomment to link compiled static library
+        #cimpl_static
+        m
+    )
     target_include_directories(${EXAMPLE_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/include/)
 endforeach()
