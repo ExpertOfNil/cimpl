@@ -55,7 +55,6 @@ typedef struct StlTriangle {
 } StlTriangle;
 
 DEFINE_DYNAMIC_ARRAY(StlTriangle, StlTriangleArray)
-CimplReturn StlTriangleArray_from_binary(const char*, StlTriangleArray*);
 
 typedef struct Vec4 {
     f32 x, y, z, w;
@@ -99,6 +98,16 @@ void Mat4_print_with_id(Mat4 m, const char* id);
 Mat4 Mat4_from_translation_quat(Vec3 t, Quat q);
 Mat4 Mat4_inverse_rigid(Mat4 src);
 Mat4 Mat4_mul(Mat4 a, Mat4 b);
+Mat4 Mat4_orthonormalize(Mat4 m);
+
+CimplReturn StlTriangleArray_from_binary(const char*, StlTriangleArray*);
+
+void Vec3Tree_print(Vec3Tree* arr);
+i32 Vec3Tree_partition(Vec3Tree* node_arr, Axis axis, i32 start, i32 end);
+void Vec3Tree_quicksort(Vec3Tree* node_arr, Axis axis, i32 start, i32 end);
+CimplReturn Vec3Tree_sort(
+    Vec3Tree* node_arr, Axis axis, const Vec3Array* pt_arr
+);
 
 /*** FUNCTION DEFINITIONS ***/
 
@@ -266,6 +275,34 @@ Mat4 Mat4_mul(Mat4 a, Mat4 b) {
     dst.tk = a.xk * b.ti + a.yk * b.tj + a.zk * b.tk + a.tk * b.tw;
     dst.tw = a.xw * b.ti + a.yw * b.tj + a.zw * b.tk + a.tw * b.tw;
 
+    return dst;
+}
+
+Mat4 Mat4_orthonormalize(Mat4 m) {
+    Mat4 dst = MAT4_IDENTITY;
+    // Ensure x-axis is orthogonal to the yz-plane
+    Vec3 x_axis =
+        Vec3_cross((Vec3){m.yi, m.yj, m.yk}, (Vec3){m.zi, m.zj, m.zk});
+    x_axis = Vec3_normalize(x_axis);
+    dst.xi = x_axis.x;
+    dst.xj = x_axis.y;
+    dst.xk = x_axis.z;
+    // Ensure y-axis is orthogonal to the xz-plane
+    Vec3 y_axis =
+        Vec3_cross((Vec3){m.zi, m.zj, m.zk}, (Vec3){dst.xi, dst.xj, dst.xk});
+    y_axis = Vec3_normalize(y_axis);
+    dst.yi = y_axis.x;
+    dst.yj = y_axis.y;
+    dst.yk = y_axis.z;
+    // Ensure z-axis is normalized
+    Vec3 z_axis = Vec3_normalize((Vec3){m.zi, m.zj, m.zk});
+    dst.zi = z_axis.x;
+    dst.zj = z_axis.y;
+    dst.zk = z_axis.z;
+
+    dst.ti = m.ti;
+    dst.tj = m.tj;
+    dst.tk = m.tk;
     return dst;
 }
 
