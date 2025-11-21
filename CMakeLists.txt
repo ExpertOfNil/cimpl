@@ -38,3 +38,17 @@ foreach(EXAMPLE_SOURCE ${EXAMPLE_SOURCES})
     )
     target_include_directories(${EXAMPLE_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/include/)
 endforeach()
+
+file(GLOB TEST_SOURCES "tests/*.c")
+foreach(TEST_SOURCE ${TEST_SOURCES})
+    get_filename_component(TEST_NAME ${TEST_SOURCE} NAME_WE)
+    add_executable(${TEST_NAME} ${TEST_SOURCE})
+    target_link_libraries(${TEST_NAME}
+        # Uncomment to link compiled shared library
+        #cimpl
+        # Uncomment to link compiled static library
+        #cimpl_static
+        m
+    )
+    target_include_directories(${TEST_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/include/)
+endforeach()

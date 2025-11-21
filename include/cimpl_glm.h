@@ -12,27 +12,11 @@
 
 #define POSE_PRINT_FORMAT \
     "[%010d] %9.3f, %9.3f, %9.3f,%9.3f, %9.3f, %9.3f, %9.3f\n"
-#define VEC3_ZERO {0.0f, 0.0f, 0.0f}
-#define QUAT_IDENTITY {0.0f, 0.0f, 0.0f, 1.0f};
-// clang-format off
-#define MAT3_IDENTITY { \
-    1.0f, 0.0f, 0.0f, \
-    0.0f, 1.0f, 0.0f, \
-    0.0f, 0.0f, 1.0f, \
-}
-// clang-format on
-// clang-format off
-#define MAT4_IDENTITY { \
-    1.0f, 0.0f, 0.0f, 0.0f, \
-    0.0f, 1.0f, 0.0f, 0.0f, \
-    0.0f, 0.0f, 1.0f, 0.0f, \
-    0.0f, 0.0f, 0.0f, 1.0f, \
-}
-// clang-format on
 
 typedef struct Vec3 {
     f32 x, y, z;
 } Vec3;
+#define VEC3_ZERO {0.0f, 0.0f, 0.0f}
 
 DEFINE_DYNAMIC_ARRAY(Vec3, Vec3Array)
 
@@ -46,12 +30,20 @@ typedef struct Vec4 {
 } Vec4;
 
 typedef struct Vec4 Quat;
+#define QUAT_IDENTITY {0.0f, 0.0f, 0.0f, 1.0f}
 
 typedef struct Mat3 {
     f32 xi, xj, xk;
     f32 yi, yj, yk;
     f32 zi, zj, zk;
 } Mat3;
+// clang-format off
+#define MAT3_IDENTITY { \
+    1.0f, 0.0f, 0.0f, \
+    0.0f, 1.0f, 0.0f, \
+    0.0f, 0.0f, 1.0f, \
+}
+// clang-format on
 
 /** A column-vector, column-major 4x4 matrix
  *
@@ -62,6 +54,14 @@ typedef struct Mat4 {
     f32 zi, zj, zk, zw;
     f32 ti, tj, tk, tw;
 } Mat4;
+// clang-format off
+#define MAT4_IDENTITY { \
+    1.0f, 0.0f, 0.0f, 0.0f, \
+    0.0f, 1.0f, 0.0f, 0.0f, \
+    0.0f, 0.0f, 1.0f, 0.0f, \
+    0.0f, 0.0f, 0.0f, 1.0f, \
+}
+// clang-format on
 
 /*** FUNCTION DECLARATIONS ***/
 
@@ -76,6 +76,23 @@ Quat Mat3_to_quat(Mat3 m);
 void Mat4_print_with_id(Mat4 m, const char* id);
 Mat4 Mat4_inverse_rigid(Mat4 src);
 Mat4 Mat4_orthonormalize(Mat4 m);
+Mat4 Mat4_perspective_NO(f32 fovy, f32 aspect, f32 near, f32 far);
+Mat4 Mat4_perspective_ZO(f32 fovy, f32 aspect, f32 near, f32 far);
+Mat4 Mat4_perspective_from_intrinsic_NO(
+    Mat3 intrinsic, f32 w, f32 h, f32 near, f32 far
+);
+Mat4 Mat4_perspective_from_intrinsic_ZO(
+    Mat3 intrinsic, f32 w, f32 h, f32 near, f32 far
+);
+#ifndef FORCE_DEPTH_ZERO_TO_ONE
+#define Mat4_perspective Mat4_perspective_NO
+#define Mat4_perspective_from_intrinsic Mat4_perspective_from_intrinsic_NO
+#else
+#define Mat4_perspective Mat4_perspective_ZO
+#define Mat4_perspective_from_intrinsic Mat4_perspective_from_intrinsic_ZO
+#endif
+Mat4 Mat4_look_dir(Vec3 eye, Vec3 direction, Vec3 up);
+Mat4 Mat4_look_at(Vec3 eye, Vec3 target, Vec3 up);
 
 /*** STATIC FUNCTION DEFINITIONS ***/
 
@@ -103,7 +120,7 @@ static inline f32 remap(
     return lerp(out_start, out_end, t);
 }
 
-static inline f32 equals_f32(f32 a, f32 b) {
+static inline bool equals_f32(f32 a, f32 b) {
     bool result =
         fabsf(a - b) <= FLOAT_EPS * fmaxf(1.0f, fmaxf(fabsf(a), fabsf(b)));
     return result;
@@ -115,12 +132,41 @@ static inline Vec3 Vec3_init(f32 x, f32 y, f32 z) {
     return v;
 }
 
-static inline float Vec3_dot(Vec3 va, Vec3 vb) {
+static inline Vec3 Vec3_add(Vec3 va, Vec3 vb) {
+    Vec3 result = {va.x + vb.x, va.y + vb.y, va.z + vb.z};
+    return result;
+}
+
+static inline Vec3 Vec3_sub(Vec3 va, Vec3 vb) {
+    Vec3 result = {va.x - vb.x, va.y - vb.y, va.z - vb.z};
+    return result;
+}
+
+static inline Vec3 Vec3_scale(Vec3 va, f32 s) {
+    Vec3 result = {va.x * s, va.y * s, va.z * s};
+    return result;
+}
+
+static inline f32 Vec3_dot(Vec3 va, Vec3 vb) {
     return va.x * vb.x + va.y * vb.y + va.z * vb.z;
 }
 
 static inline f32 Vec3_length(Vec3 v) {
     return sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
+}
+
+static inline Vec3 Vec3_project(Vec3 va, Vec3 vb) {
+    f32 va_vb = Vec3_dot(va, vb);
+    f32 va_va = Vec3_dot(va, va);
+    f32 mag = va_vb / va_va;
+    Vec3 result = Vec3_scale(vb, mag);
+    return result;
+}
+
+static inline Vec3 Vec3_reject(Vec3 va, Vec3 vb) {
+    Vec3 proj = Vec3_project(va, vb);
+    Vec3 result = Vec3_sub(va, proj);
+    return result;
 }
 
 static inline Vec3 Vec3_normalize(Vec3 v) {
@@ -159,8 +205,19 @@ static inline Quat Quat_init(f32 x, f32 y, f32 z, f32 w) {
     return q;
 }
 
-static inline float Quat_dot(Quat qa, Quat qb) {
+static inline f32 Quat_dot(Quat qa, Quat qb) {
     return qa.x * qb.x + qa.y * qb.y + qa.z * qb.z + qa.w * qb.w;
+}
+
+static inline Quat Quat_mul(Quat qa, Quat qb) {
+    Quat result = QUAT_IDENTITY;
+
+    result.x = qa.x * qb.w + qa.w * qb.x + qa.y * qb.z - qa.z * qb.y;
+    result.y = qa.y * qb.w + qa.w * qb.y + qa.z * qb.x - qa.x * qb.z;
+    result.z = qa.z * qb.w + qa.w * qb.z + qa.x * qb.y - qa.y * qb.x;
+    result.w = qa.w * qb.w - qa.x * qb.x - qa.y * qb.y - qa.z * qb.z;
+
+    return result;
 }
 
 static inline f32 Quat_length(Quat q) {
@@ -326,9 +383,9 @@ Quat Quat_from_euler(Vec3 euler) {
     float zb = sinf(euler.z * 0.5f);
 
     result.x = xb * ya * za - xa * yb * zb;
-    result.y = xa * yb * za - xb * ya * zb;
+    result.y = xa * yb * za + xb * ya * zb;
     result.z = xa * ya * zb - xb * yb * za;
-    result.w = xa * ya * za - xb * yb * zb;
+    result.w = xa * ya * za + xb * yb * zb;
 
     return result;
 }
@@ -337,7 +394,7 @@ Vec3 Quat_to_euler(Quat q) {
     Vec3 result = VEC3_ZERO;
 
     // x-axis rotation
-    float xa = 2.0f * (q.w * q.x - q.y * q.z);
+    float xa = 2.0f * (q.w * q.x + q.y * q.z);
     float xb = 1.0f - 2.0f * (q.x * q.x + q.y * q.y);
     result.x = atan2f(xa, xb);
 
@@ -348,8 +405,8 @@ Vec3 Quat_to_euler(Quat q) {
     result.y = asinf(ya);
 
     // z-axis rotation
-    float za = 2.0f * (q.w * q.z - q.x * q.y);
-    float zb = 1.0f - 2.0f * (q.x * q.x + q.y * q.y);
+    float za = 2.0f * (q.w * q.z + q.x * q.y);
+    float zb = 1.0f - 2.0f * (q.y * q.y + q.z * q.z);
     result.z = atan2f(za, zb);
 
     return result;
@@ -436,7 +493,7 @@ Quat Quat_slerp(Quat qa, Quat qb, float t) {
     }
 
     float theta = acosf(dotq);
-    float sin_theta = sqrtf(1.0f - theta * theta);
+    float sin_theta = sqrtf(1.0f - dotq * dotq);
 
     Quat result = QUAT_IDENTITY;
     if (fabsf(sin_theta) < FLOAT_EPS) {
@@ -530,6 +587,98 @@ Mat4 Mat4_inverse_rigid(Mat4 src) {
     dst.tk = -(z.x * src.ti + z.y * src.tj + z.z * src.tk);
 
     return dst;
+}
+
+Mat4 Mat4_perspective_NO(f32 fovy, f32 aspect, f32 near, f32 far) {
+    Mat4 result = {0};
+    f32 tan_half_fovy = tanf(fovy * 0.5f);
+
+    result.xi = 1.0f / (aspect * tan_half_fovy);
+    result.yj = 1.0f / tan_half_fovy;
+    result.zk = -(far + near) / (far - near);
+    result.zw = -1.0f;
+    result.tk = -(2.0f * far * near) / (far - near);
+
+    return result;
+}
+
+Mat4 Mat4_perspective_ZO(f32 fovy, f32 aspect, f32 near, f32 far) {
+    Mat4 result = {0};
+    f32 tan_half_fovy = tanf(fovy * 0.5f);
+
+    result.xi = 1.0f / (aspect * tan_half_fovy);
+    result.yj = 1.0f / tan_half_fovy;
+    result.zk = far / (near - far);
+    result.zw = -1.0f;
+    result.tk = -(far * near) / (far - near);
+
+    return result;
+}
+
+Mat4 Mat4_perspective_from_intrinsic_NO(
+    Mat3 intrinsic, f32 w, f32 h, f32 near, f32 far
+) {
+    f32 fx = intrinsic.xi;
+    f32 fy = intrinsic.yj;
+    f32 cx = intrinsic.zi;
+    f32 cy = intrinsic.zj;
+
+    f32 fovy = 2.0f * atanf(h / (2.0f * fy));
+    f32 aspect = (w * fy) / (h * fx);
+
+    Mat4 result = Mat4_perspective_NO(fovy, aspect, near, far);
+    result.zi = 1.0f - 2.0f * cx / w;
+    result.zj = 2.0f * cy / h - 1.0f;
+
+    return result;
+}
+
+Mat4 Mat4_perspective_from_intrinsic_ZO(
+    Mat3 intrinsic, f32 w, f32 h, f32 near, f32 far
+) {
+    f32 fx = intrinsic.xi;
+    f32 fy = intrinsic.yj;
+    f32 cx = intrinsic.zi;
+    f32 cy = intrinsic.zj;
+
+    f32 fovy = 2.0f * atanf(h / (2.0f * fy));
+    f32 aspect = (w * fy) / (h * fx);
+
+    Mat4 result = Mat4_perspective_ZO(fovy, aspect, near, far);
+    result.zi = 1.0f - 2.0f * cx / w;
+    result.zj = 2.0f * cy / h - 1.0f;
+
+    return result;
+}
+
+Mat4 Mat4_look_dir(Vec3 eye, Vec3 direction, Vec3 up) {
+    Vec3 f = Vec3_normalize(direction);
+    Vec3 r = Vec3_normalize(Vec3_cross(f, up));
+    Vec3 u = Vec3_cross(r, f);
+
+    Mat4 result = MAT4_IDENTITY;
+    result.xi = r.x;
+    result.yi = r.y;
+    result.zi = r.z;
+
+    result.xj = u.x;
+    result.yj = u.y;
+    result.zj = u.z;
+
+    result.xk = -f.x;
+    result.yk = -f.y;
+    result.zk = -f.z;
+
+    result.ti = -Vec3_dot(r, eye);
+    result.tj = -Vec3_dot(u, eye);
+    result.tk = Vec3_dot(f, eye);
+
+    return result;
+}
+
+Mat4 Mat4_look_at(Vec3 eye, Vec3 target, Vec3 up) {
+    Vec3 direction = Vec3_sub(target, eye);
+    return Mat4_look_dir(eye, direction, up);
 }
 
 #endif /* CIMPL_IMPLEMENTATION */
