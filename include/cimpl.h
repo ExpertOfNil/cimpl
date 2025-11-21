@@ -3,6 +3,7 @@
 
 #include "cimpl_core.h"
 #include "cimpl_glm.h"
+#include "cimpl_glm_ext.h"
 #include "cimpl_string.h"
 #include "cimpl_network.h"
 #include "cimpl_serial.h"

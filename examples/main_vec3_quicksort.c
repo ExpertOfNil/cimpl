@@ -1,6 +1,6 @@
 #define CIMPL_IMPLEMENTATION
 #include "cimpl_core.h"
-#include "cimpl_glm.h"
+#include "cimpl_glm_ext.h"
 
 #define MAX_VALUE DEFAULT_ARRAY_CAPACITY * 2
 
