@@ -132,15 +132,15 @@ typedef enum {
 /*** FUNCTION DECLARATIONS ***/
 
 inline static u32 randi(u32 index);
-static inline const char* get_timestamp(void);
-static inline void log_message(
+const char* get_timestamp(void);
+void log_message(
     const char* level_str, const char* format, va_list args
 );
-static inline void log_trace(const char* format, ...);
-static inline void log_debug(const char* format, ...);
-static inline void log_info(const char* format, ...);
-static inline void log_warn(const char* format, ...);
-static inline void log_error(const char* format, ...);
+void log_trace(const char* format, ...);
+void log_debug(const char* format, ...);
+void log_info(const char* format, ...);
+void log_warn(const char* format, ...);
+void log_error(const char* format, ...);
 
 /*** FUNCTION DEFINITIONS ***/
 
@@ -150,7 +150,7 @@ inline static u32 randi(u32 index) {
     return (index * (index * index * 15731 + 789221) + 1276312589) & 0x7fffffff;
 }
 
-static inline const char* get_timestamp(void) {
+const char* get_timestamp(void) {
     static char timestamp[20];
     static time_t last_time = 0;
 
@@ -163,7 +163,7 @@ static inline const char* get_timestamp(void) {
     return timestamp;
 }
 
-static inline void log_message(
+void log_message(
     const char* level_str, const char* format, va_list args
 ) {
     printf("[%s] %s: ", get_timestamp(), level_str);
@@ -173,35 +173,35 @@ static inline void log_message(
 
     va_end(args);
 }
-static inline void log_trace(const char* format, ...) {
+void log_trace(const char* format, ...) {
     const u8 level = 0;
     if (LOG_LEVEL > level) return;
     va_list args;
     va_start(args, format);
     log_message("TRACE", format, args);
 }
-static inline void log_debug(const char* format, ...) {
+void log_debug(const char* format, ...) {
     const u8 level = 1;
     if (LOG_LEVEL > level) return;
     va_list args;
     va_start(args, format);
     log_message("DEBUG", format, args);
 }
-static inline void log_info(const char* format, ...) {
+void log_info(const char* format, ...) {
     const u8 level = 2;
     if (LOG_LEVEL > level) return;
     va_list args;
     va_start(args, format);
     log_message("INFO", format, args);
 }
-static inline void log_warn(const char* format, ...) {
+void log_warn(const char* format, ...) {
     const u8 level = 3;
     if (LOG_LEVEL > level) return;
     va_list args;
     va_start(args, format);
     log_message("WARN", format, args);
 }
-static inline void log_error(const char* format, ...) {
+void log_error(const char* format, ...) {
     const u8 level = 4;
     if (LOG_LEVEL > level) return;
     va_list args;
