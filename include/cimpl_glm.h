@@ -9,6 +9,7 @@
 #include "cimpl_core.h"
 
 #define FLOAT_EPS 0.000001f
+#define PI 3.14159265358979323846
 
 #define POSE_PRINT_FORMAT \
     "[%010d] %9.3f, %9.3f, %9.3f,%9.3f, %9.3f, %9.3f, %9.3f\n"
@@ -97,6 +98,10 @@ Mat4 Mat4_look_at(Vec3 eye, Vec3 target, Vec3 up);
 /*** STATIC FUNCTION DEFINITIONS ***/
 
 /* General */
+static inline f32 radians(f32 deg) { return deg * PI / 180.0f; }
+
+static inline f32 degrees(f32 rad) { return rad * 180.0f / PI; }
+
 static inline f32 clamp(f32 value, f32 min, f32 max) {
     f32 result = value < min ? min : value;
     result = result > max ? max : result;
@@ -252,6 +257,16 @@ static inline Quat Quat_inverse(Quat q) {
     return result;
 }
 
+static inline Vec3 Quat_rotate_vec3(Quat q, Vec3 v) {
+    // Quaternion rotation: v' = v + 2 * cross(q.xyz, cross(q.xyz, v) + q.w * v)
+    Vec3 qv = Vec3_init(q.x, q.y, q.z);
+    Vec3 t = Vec3_cross(qv, v);
+    t = Vec3_add(t, Vec3_scale(v, q.w));
+    t = Vec3_cross(qv, t);
+    t = Vec3_scale(t, 2.0f);
+    return Vec3_add(v, t);
+}
+
 static inline Quat Quat_norm_lerp(Quat qa, Quat qb, float t) {
     Quat result = QUAT_IDENTITY;
 
@@ -350,6 +365,15 @@ static inline Mat4 Mat4_mul(Mat4 a, Mat4 b) {
     dst.tw = a.xw * b.ti + a.yw * b.tj + a.zw * b.tk + a.tw * b.tw;
 
     return dst;
+}
+
+static inline Vec4 Mat4_mul_vec4(Mat4 m, Vec4 v) {
+    Vec4 result;
+    result.x = m.xi * v.x + m.yi * v.y + m.zi * v.z + m.ti * v.w;
+    result.y = m.xj * v.x + m.yj * v.y + m.zj * v.z + m.tj * v.w;
+    result.z = m.xk * v.x + m.yk * v.y + m.zk * v.z + m.tk * v.w;
+    result.w = m.xw * v.x + m.yw * v.y + m.zw * v.z + m.tw * v.w;
+    return result;
 }
 
 static inline Mat3 Mat4_rotation(Mat4 m) {
